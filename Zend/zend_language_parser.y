@@ -280,7 +280,7 @@ static YYSIZE_T zend_yytnamerr(char*, const char*);
 %type <ast> inline_function union_type_element union_type intersection_type
 %type <ast> attributed_statement attributed_class_statement attributed_parameter
 %type <ast> attribute_decl attribute attributes attribute_group namespace_declaration_name
-%type <ast> match match_arm_list non_empty_match_arm_list match_arm match_arm_cond_list match_cond_subject
+%type <ast> match match_arm_list non_empty_match_arm_list match_arm match_arm_cond_list truthly_parenth_expr
 %type <ast> enum_declaration_statement enum_backing_type enum_case enum_case_expr
 %type <ast> function_name non_empty_member_modifiers
 %type <ast> property_hook property_hook_list optional_property_hook_list hooked_property property_hook_body
@@ -505,12 +505,16 @@ statement:
 	|	alt_if_stmt { $$ = $1; }
 	|	T_WHILE '(' expr ')' while_statement
 			{ $$ = zend_ast_create(ZEND_AST_WHILE, $3, $5); }
+	|	T_WHILE '{' inner_statement_list '}'
+			{ zval z; ZVAL_TRUE(&z); $$ = zend_ast_create(ZEND_AST_WHILE, zend_ast_create_zval(&z), $3); }
 	|	T_DO statement T_WHILE '(' expr ')' ';'
 			{ $$ = zend_ast_create(ZEND_AST_DO_WHILE, $2, $5); }
+	|	T_DO statement T_WHILE ';'
+			{ zval z; ZVAL_TRUE(&z); $$ = zend_ast_create(ZEND_AST_DO_WHILE, $2, zend_ast_create_zval(&z)); }
 	|	T_FOR '(' for_exprs ';' for_exprs ';' for_exprs ')' for_statement
 			{ $$ = zend_ast_create(ZEND_AST_FOR, $3, $5, $7, $9); }
-	|	T_SWITCH '(' expr ')' switch_case_list
-			{ $$ = zend_ast_create(ZEND_AST_SWITCH, $3, $5); }
+	|	T_SWITCH truthly_parenth_expr switch_case_list
+			{ $$ = zend_ast_create(ZEND_AST_SWITCH, $2, $3); }
 	|	T_BREAK optional_expr ';'		{ $$ = zend_ast_create(ZEND_AST_BREAK, $2); }
 	|	T_CONTINUE optional_expr ';'	{ $$ = zend_ast_create(ZEND_AST_CONTINUE, $2); }
 	|	T_RETURN optional_expr ';'		{ $$ = zend_ast_create(ZEND_AST_RETURN, $2); }
@@ -716,13 +720,13 @@ case_separator:
 	|	';'
 ;
 
-match_cond_subject:
+truthly_parenth_expr:
         %empty          { zval z; ZVAL_TRUE(&z); $$ = zend_ast_create_zval(&z); }
     |   '(' expr ')'    { $$ = $2; }
 ;
 
 match:
-		T_MATCH match_cond_subject '{' match_arm_list '}'
+		T_MATCH truthly_parenth_expr '{' match_arm_list '}'
 			{ $$ = zend_ast_create(ZEND_AST_MATCH, $2, $4); };
 ;
 
