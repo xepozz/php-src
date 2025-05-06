@@ -6644,6 +6644,51 @@ static void zend_compile_try(zend_ast *ast) /* {{{ */
 
 	zend_compile_stmt(try_ast);
 
+    if (catches->children == 0 && !finally_ast) {
+        // discard exception and return null
+
+        zend_loop_var discard_exception;
+        uint32_t opnum_jmp = get_next_op_number() + 1;
+        uint32_t temp_var = get_temporary_variable();
+
+        // Set up the handling mechanism similar to finally but without user code
+        CG(active_op_array)->fn_flags |= ZEND_ACC_HAS_FINALLY_BLOCK;
+
+        // Push DISCARD_EXCEPTION on unwind stack
+        discard_exception.opcode = ZEND_DISCARD_EXCEPTION;
+        discard_exception.var_type = IS_TMP_VAR;
+        discard_exception.var_num = CG(context).fast_call_var;
+        zend_stack_push(&CG(loop_var_stack), &discard_exception);
+
+        // Emit FAST_CALL with the try_catch_offset
+        opline = zend_emit_op(NULL, ZEND_FAST_CALL, NULL, NULL);
+        opline->op1.num = try_catch_offset;
+        opline->result_type = IS_TMP_VAR;
+        opline->result.var = temp_var;
+
+        // Jump over the exception handling code if no exception occurred
+        zend_emit_op(NULL, ZEND_JMP, NULL, NULL);
+
+        // This part is the "synthetic finally" - just a minimal block to discard exceptions
+        // No actual code is generated here since we don't have a finally_ast
+
+        // Update the try-catch array with our handling info
+        CG(active_op_array)->try_catch_array[try_catch_offset].finally_op = opnum_jmp + 1;
+        CG(active_op_array)->try_catch_array[try_catch_offset].finally_end = get_next_op_number();
+
+        // Complete the handling with FAST_RET
+//        opline = zend_emit_op(NULL, ZEND_FAST_RET, NULL, NULL);
+//        opline->op1_type = IS_TMP_VAR;
+//        opline->op1.var = temp_var;
+//        opline->op2.num = orig_try_catch_offset;
+
+        // Update jump target to continue execution
+        zend_update_jump_target_to_next(opnum_jmp);
+
+        // Pop DISCARD_EXCEPTION from unwind stack
+        zend_stack_del_top(&CG(loop_var_stack));
+    }
+
 	if (catches->children != 0) {
         jmp_opnums[0] = zend_emit_jump(0);
 
