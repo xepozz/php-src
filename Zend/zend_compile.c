@@ -6645,82 +6645,82 @@ static void zend_compile_try(zend_ast *ast) /* {{{ */
 	zend_compile_stmt(try_ast);
 
 	if (catches->children != 0) {
-		jmp_opnums[0] = zend_emit_jump(0);
-	}
+        jmp_opnums[0] = zend_emit_jump(0);
 
-	for (i = 0; i < catches->children; ++i) {
-		zend_ast *catch_ast = catches->child[i];
-		zend_ast_list *classes = zend_ast_get_list(catch_ast->child[0]);
-		zend_ast *var_ast = catch_ast->child[1];
-		zend_ast *stmt_ast = catch_ast->child[2];
-		zend_string *var_name = var_ast ? zval_make_interned_string(zend_ast_get_zval(var_ast)) : NULL;
-		bool is_last_catch = (i + 1 == catches->children);
+        for (i = 0; i < catches->children; ++i) {
+            zend_ast * catch_ast = catches->child[i];
+            zend_ast_list *classes = zend_ast_get_list(catch_ast->child[0]);
+            zend_ast * var_ast = catch_ast->child[1];
+            zend_ast * stmt_ast = catch_ast->child[2];
+            zend_string * var_name = var_ast ? zval_make_interned_string(zend_ast_get_zval(var_ast)) : NULL;
+            bool is_last_catch = (i + 1 == catches->children);
 
-		uint32_t *jmp_multicatch = safe_emalloc(sizeof(uint32_t), classes->children - 1, 0);
-		uint32_t opnum_catch = (uint32_t)-1;
+            uint32_t * jmp_multicatch = safe_emalloc(sizeof(uint32_t), classes->children - 1, 0);
+            uint32_t opnum_catch = (uint32_t) -1;
 
-		CG(zend_lineno) = catch_ast->lineno;
+            CG(zend_lineno) = catch_ast->lineno;
 
-		for (j = 0; j < classes->children; j++) {
-			zend_ast *class_ast = classes->child[j];
-			bool is_last_class = (j + 1 == classes->children);
+            for (j = 0; j < classes->children; j++) {
+                zend_ast * class_ast = classes->child[j];
+                bool is_last_class = (j + 1 == classes->children);
 
-			if (!zend_is_const_default_class_ref(class_ast)) {
-				zend_error_noreturn(E_COMPILE_ERROR, "Bad class name in the catch statement");
-			}
+                if (!zend_is_const_default_class_ref(class_ast)) {
+                    zend_error_noreturn(E_COMPILE_ERROR, "Bad class name in the catch statement");
+                }
 
-			opnum_catch = get_next_op_number();
-			if (i == 0 && j == 0) {
-				CG(active_op_array)->try_catch_array[try_catch_offset].catch_op = opnum_catch;
-			}
+                opnum_catch = get_next_op_number();
+                if (i == 0 && j == 0) {
+                    CG(active_op_array)->try_catch_array[try_catch_offset].catch_op = opnum_catch;
+                }
 
-			opline = get_next_op();
-			opline->opcode = ZEND_CATCH;
-			opline->op1_type = IS_CONST;
-			opline->op1.constant = zend_add_class_name_literal(
-					zend_resolve_class_name_ast(class_ast));
-			opline->extended_value = zend_alloc_cache_slot();
+                opline = get_next_op();
+                opline->opcode = ZEND_CATCH;
+                opline->op1_type = IS_CONST;
+                opline->op1.constant = zend_add_class_name_literal(
+                        zend_resolve_class_name_ast(class_ast));
+                opline->extended_value = zend_alloc_cache_slot();
 
-			if (var_name && zend_string_equals(var_name, ZSTR_KNOWN(ZEND_STR_THIS))) {
-				zend_error_noreturn(E_COMPILE_ERROR, "Cannot re-assign $this");
-			}
+                if (var_name && zend_string_equals(var_name, ZSTR_KNOWN(ZEND_STR_THIS))) {
+                    zend_error_noreturn(E_COMPILE_ERROR, "Cannot re-assign $this");
+                }
 
-			opline->result_type = var_name ? IS_CV : IS_UNUSED;
-			opline->result.var = var_name ? lookup_cv(var_name) : -1;
+                opline->result_type = var_name ? IS_CV : IS_UNUSED;
+                opline->result.var = var_name ? lookup_cv(var_name) : -1;
 
-			if (is_last_catch && is_last_class) {
-				opline->extended_value |= ZEND_LAST_CATCH;
-			}
+                if (is_last_catch && is_last_class) {
+                    opline->extended_value |= ZEND_LAST_CATCH;
+                }
 
-			if (!is_last_class) {
-				jmp_multicatch[j] = zend_emit_jump(0);
-				opline = &CG(active_op_array)->opcodes[opnum_catch];
-				opline->op2.opline_num = get_next_op_number();
-			}
-		}
+                if (!is_last_class) {
+                    jmp_multicatch[j] = zend_emit_jump(0);
+                    opline = &CG(active_op_array)->opcodes[opnum_catch];
+                    opline->op2.opline_num = get_next_op_number();
+                }
+            }
 
-		for (j = 0; j < classes->children - 1; j++) {
-			zend_update_jump_target_to_next(jmp_multicatch[j]);
-		}
+            for (j = 0; j < classes->children - 1; j++) {
+                zend_update_jump_target_to_next(jmp_multicatch[j]);
+            }
 
-		efree(jmp_multicatch);
+            efree(jmp_multicatch);
 
-		zend_compile_stmt(stmt_ast);
+            zend_compile_stmt(stmt_ast);
 
-		if (!is_last_catch) {
-			jmp_opnums[i + 1] = zend_emit_jump(0);
-		}
+            if (!is_last_catch) {
+                jmp_opnums[i + 1] = zend_emit_jump(0);
+            }
 
-		ZEND_ASSERT(opnum_catch != (uint32_t)-1 && "Should have at least one class");
-		opline = &CG(active_op_array)->opcodes[opnum_catch];
-		if (!is_last_catch) {
-			opline->op2.opline_num = get_next_op_number();
-		}
-	}
+            ZEND_ASSERT(opnum_catch != (uint32_t) -1 && "Should have at least one class");
+            opline = &CG(active_op_array)->opcodes[opnum_catch];
+            if (!is_last_catch) {
+                opline->op2.opline_num = get_next_op_number();
+            }
+        }
 
-	for (i = 0; i < catches->children; ++i) {
-		zend_update_jump_target_to_next(jmp_opnums[i]);
-	}
+        for (i = 0; i < catches->children; ++i) {
+            zend_update_jump_target_to_next(jmp_opnums[i]);
+        }
+    }
 
 	if (finally_ast) {
 		zend_loop_var discard_exception;
@@ -6747,8 +6747,7 @@ static void zend_compile_try(zend_ast *ast) /* {{{ */
 		zend_compile_stmt(finally_ast);
 
 		CG(active_op_array)->try_catch_array[try_catch_offset].finally_op = opnum_jmp + 1;
-		CG(active_op_array)->try_catch_array[try_catch_offset].finally_end
-			= get_next_op_number();
+		CG(active_op_array)->try_catch_array[try_catch_offset].finally_end = get_next_op_number();
 
 		opline = zend_emit_op(NULL, ZEND_FAST_RET, NULL, NULL);
 		opline->op1_type = IS_TMP_VAR;
