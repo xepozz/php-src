@@ -6612,10 +6612,6 @@ static void zend_compile_try(zend_ast *ast) /* {{{ */
 	uint32_t orig_fast_call_var = CG(context).fast_call_var;
 	uint32_t orig_try_catch_offset = CG(context).try_catch_offset;
 
-	if (catches->children == 0 && !finally_ast) {
-		zend_error_noreturn(E_COMPILE_ERROR, "Cannot use try without catch or finally");
-	}
-
 	/* label: try { } must not be equal to try { label: } */
 	if (CG(context).labels) {
 		zend_label *label;
