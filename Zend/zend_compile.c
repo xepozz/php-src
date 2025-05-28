@@ -8252,6 +8252,7 @@ static zend_op_array *zend_compile_func_decl_ex(
 	zend_ast *stmt_ast = decl->child[2];
 	zend_ast *return_type_ast = decl->child[3];
 	bool is_method = decl->kind == ZEND_AST_METHOD;
+	bool is_extension = ast->child[5] != NULL;
 	zend_string *lcname = NULL;
 	bool is_hook = decl->kind == ZEND_AST_PROPERTY_HOOK;
 
@@ -8284,6 +8285,13 @@ static zend_op_array *zend_compile_func_decl_ex(
 		zend_class_entry *ce = CG(active_class_entry);
 		op_array->scope = ce;
 		op_array->function_name = zend_string_copy(decl->name);
+	} else if (is_extension) {
+		zend_string *classname = zend_resolve_const_class_name_reference(decl->child[5], "class name");
+		zend_class_entry *ce = zend_hash_find_ptr_lc(CG(class_table), classname);
+		CG(active_class_entry) = ce;
+		op_array->scope = ce;
+		op_array->function_name = zend_string_copy(decl->name);
+		lcname = zend_begin_method_decl(op_array, decl->name, 1);
 	} else if (is_method) {
 		bool has_body = stmt_ast != NULL;
 		lcname = zend_begin_method_decl(op_array, decl->name, has_body);
@@ -8332,7 +8340,7 @@ static zend_op_array *zend_compile_func_decl_ex(
 	/* Do not leak the class scope into free standing functions, even if they are dynamically
 	 * defined inside a class method. This is necessary for correct handling of magic constants.
 	 * For example __CLASS__ should always be "" inside a free standing function. */
-	if (decl->kind == ZEND_AST_FUNC_DECL) {
+	if (decl->kind == ZEND_AST_FUNC_DECL && !is_extension) {
 		CG(active_class_entry) = NULL;
 	}
 
@@ -8379,7 +8387,7 @@ static zend_op_array *zend_compile_func_decl_ex(
 
 	zend_compile_stmt(stmt_ast);
 
-	if (is_method) {
+	if (is_method || is_extension) {
 		CG(zend_lineno) = decl->start_lineno;
 		zend_check_magic_method_implementation(
 			CG(active_class_entry), (zend_function *) op_array, lcname, E_COMPILE_ERROR);
