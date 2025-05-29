@@ -1,5 +1,5 @@
 --TEST--
-Extension to a system class
+Extension to a userland defined class
 --FILE--
 <?php
 
@@ -21,19 +21,20 @@ function stdClass.hasName(): bool {
 // use function hasName;
 **/
 
+class abc{}
 
-function ::stdClass hasName(): bool {
-    echo get_class($this);
+function ::abc hasName(): bool {
+    var_dump(get_class($this));
 
     return true;
 }
 
-$class = new stdClass;
+$class = new abc;
 $r = $class->hasName();
 
 var_dump($r);
 
 ?>
 --EXPECTF--
-stdClass
+string(8) "abc"
 bool(true)
