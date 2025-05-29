@@ -582,7 +582,7 @@ static inline void zend_insert_literal(zend_op_array *op_array, zval *zv, int li
 /* }}} */
 
 /* Is used while compiling a function, using the context to keep track
-   of an approximate size to avoid to relocate to often.
+   of an approximate size to avoid to relocate too often.
    Literals are truncated to actual size in the second compiler pass (pass_two()). */
 static int zend_add_literal(zval *zv) /* {{{ */
 {
