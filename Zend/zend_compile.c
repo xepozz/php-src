@@ -8286,11 +8286,8 @@ static zend_op_array *zend_compile_func_decl_ex(
 		op_array->scope = ce;
 		op_array->function_name = zend_string_copy(decl->name);
 	} else if (is_extension) {
-		zend_string *classname = zend_resolve_const_class_name_reference(decl->child[5], "class name");
-		zend_class_entry *ce = zend_hash_find_ptr_lc(CG(class_table), classname);
-		CG(active_class_entry) = ce;
-		op_array->scope = ce;
-		op_array->function_name = zend_string_copy(decl->name);
+		lcname = zend_resolve_const_class_name_reference(decl->child[5], "class name");
+		CG(active_class_entry) = zend_hash_find_ptr_lc(CG(class_table), lcname);
 		lcname = zend_begin_method_decl(op_array, decl->name, 1);
 	} else if (is_method) {
 		bool has_body = stmt_ast != NULL;
@@ -8310,7 +8307,7 @@ static zend_op_array *zend_compile_func_decl_ex(
 	if (decl->child[4]) {
 		int target = ZEND_ATTRIBUTE_TARGET_FUNCTION;
 
-		if (is_method || is_hook) {
+		if (is_method || is_hook || is_extension) {
 			target = ZEND_ATTRIBUTE_TARGET_METHOD;
 		}
 
@@ -8344,7 +8341,7 @@ static zend_op_array *zend_compile_func_decl_ex(
 		CG(active_class_entry) = NULL;
 	}
 
-	if (level == FUNC_DECL_LEVEL_TOPLEVEL) {
+	if (level == FUNC_DECL_LEVEL_TOPLEVEL && !is_extension) {
 		op_array->fn_flags |= ZEND_ACC_TOP_LEVEL;
 	}
 
@@ -8361,7 +8358,7 @@ static zend_op_array *zend_compile_func_decl_ex(
 	}
 
 	zend_compile_params(params_ast, return_type_ast,
-		is_method && zend_string_equals_literal(lcname, ZEND_TOSTRING_FUNC_NAME) ? IS_STRING : 0);
+		(is_method || is_extension) && zend_string_equals_literal(lcname, ZEND_TOSTRING_FUNC_NAME) ? IS_STRING : 0);
 	if (CG(active_op_array)->fn_flags & ZEND_ACC_GENERATOR) {
 		zend_mark_function_as_generator();
 		zend_emit_op(NULL, ZEND_GENERATOR_CREATE, NULL, NULL);
@@ -8411,7 +8408,7 @@ static zend_op_array *zend_compile_func_decl_ex(
 	/* Pop the loop variable stack separator */
 	zend_stack_del_top(&CG(loop_var_stack));
 
-	if (level == FUNC_DECL_LEVEL_TOPLEVEL) {
+	if (level == FUNC_DECL_LEVEL_TOPLEVEL && !is_extension) {
 		zend_observer_function_declared_notify(op_array, lcname);
 	}
 
