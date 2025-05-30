@@ -1237,12 +1237,10 @@ tail_call:
 		if (decl->doc_comment) {
 			zend_string_release_ex(decl->doc_comment, 0);
 		}
-		zend_ast_destroy(decl->child[0]);
-		zend_ast_destroy(decl->child[1]);
-		zend_ast_destroy(decl->child[2]);
-		zend_ast_destroy(decl->child[3]);
-		ast = decl->child[4];
-		goto tail_call;
+		size_t length = sizeof(decl->child) / sizeof(decl->child[0]);
+		for (int i = 0; i < length; i++) {
+			zend_ast_destroy(decl->child[i]);
+		}
 	}
 }
 
