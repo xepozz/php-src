@@ -8289,6 +8289,8 @@ static zend_op_array *zend_compile_func_decl_ex(
 		lcname = zend_resolve_const_class_name_reference(decl->child[5], "class name");
 		CG(active_class_entry) = zend_hash_find_ptr_lc(CG(class_table), lcname);
 		lcname = zend_begin_method_decl(op_array, decl->name, 1);
+		zend_ast_destroy(decl->child[5]);
+//		decl->child[5] = NULL;
 	} else if (is_method) {
 		bool has_body = stmt_ast != NULL;
 		lcname = zend_begin_method_decl(op_array, decl->name, has_body);
