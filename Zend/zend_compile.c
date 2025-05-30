@@ -2767,7 +2767,8 @@ static inline bool zend_is_unticked_stmt(zend_ast *ast) /* {{{ */
 {
 	return ast->kind == ZEND_AST_STMT_LIST || ast->kind == ZEND_AST_LABEL
 		|| ast->kind == ZEND_AST_PROP_DECL || ast->kind == ZEND_AST_CLASS_CONST_GROUP
-		|| ast->kind == ZEND_AST_USE_TRAIT || ast->kind == ZEND_AST_METHOD;
+		|| ast->kind == ZEND_AST_USE_TRAIT || ast->kind == ZEND_AST_METHOD
+		|| (ast->kind == ZEND_AST_FUNC_DECL && ast->child[5]);
 }
 /* }}} */
 
@@ -8287,10 +8288,11 @@ static zend_op_array *zend_compile_func_decl_ex(
 		op_array->function_name = zend_string_copy(decl->name);
 	} else if (is_extension) {
 		lcname = zend_resolve_const_class_name_reference(decl->child[5], "class name");
-		CG(active_class_entry) = zend_hash_find_ptr_lc(CG(class_table), lcname);
+		zend_class_entry *ce = zend_hash_find_ptr_lc(CG(class_table), lcname);
+		CG(active_class_entry) = ce;
 		lcname = zend_begin_method_decl(op_array, decl->name, 1);
 		zend_ast_destroy(decl->child[5]);
-//		decl->child[5] = NULL;
+//		decl->kind = ZEND_AST_METHOD;
 	} else if (is_method) {
 		bool has_body = stmt_ast != NULL;
 		lcname = zend_begin_method_decl(op_array, decl->name, has_body);
