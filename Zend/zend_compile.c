@@ -4619,7 +4619,7 @@ static zend_result zend_compile_func_array_slice(znode *result, zend_ast_list *a
 }
 /* }}} */
 
-static uint32_t find_frameless_function_offset(uint32_t arity, void *handler)
+static uint32_t find_frameless_function_offset(void *handler)
 {
 	void **handlers = zend_flf_handlers;
 	void **current = handlers;
@@ -4662,7 +4662,7 @@ static const zend_frameless_function_info *find_frameless_function_info(zend_ast
 		 && (!(fbc->common.fn_flags & ZEND_ACC_VARIADIC)
 		  || frameless_function_info->num_args == args->children)) {
 			uint32_t num_args = frameless_function_info->num_args;
-			uint32_t offset = find_frameless_function_offset(num_args, frameless_function_info->handler);
+			uint32_t offset = find_frameless_function_offset(frameless_function_info->handler);
 			if (offset == (uint32_t)-1) {
 				continue;
 			}
@@ -4678,7 +4678,7 @@ static uint32_t zend_compile_frameless_icall_ex(znode *result, zend_ast_list *ar
 {
 	int lineno = CG(zend_lineno);
 	uint32_t num_args = frameless_function_info->num_args;
-	uint32_t offset = find_frameless_function_offset(num_args, frameless_function_info->handler);
+	uint32_t offset = find_frameless_function_offset(frameless_function_info->handler);
 	znode arg_zvs[3];
 	for (uint32_t i = 0; i < num_args; i++) {
 		if (i < args->children) {
