@@ -137,7 +137,9 @@ void zend_free_internal_arg_info(zend_internal_function *function) {
 		for (i = 0 ; i < num_args; i++) {
 			zend_type_release(arg_info[i].type, /* persistent */ 1);
 		}
-		free(arg_info);
+		if (arg_info) {
+			free(arg_info);
+		}
 	}
 }
 
