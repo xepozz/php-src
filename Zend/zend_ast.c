@@ -1924,6 +1924,11 @@ tail_call:
 			} else {
 				smart_str_appends(str, "function ");
 			}
+			if (decl->child[5]) {
+				smart_str_appends(str, "::");
+				zend_ast_export_name(str, decl->child[5], 0, indent);
+				smart_str_appendc(str, ' ');
+			}
 			if (decl->flags & ZEND_ACC_RETURN_REFERENCE) {
 				smart_str_appendc(str, '&');
 			}
