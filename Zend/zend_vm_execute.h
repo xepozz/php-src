@@ -1183,6 +1183,10 @@ static zend_never_inline ZEND_OPCODE_HANDLER_RET ZEND_FASTCALL zend_leave_helper
 	if (EXPECTED((call_info & (ZEND_CALL_CODE|ZEND_CALL_TOP|ZEND_CALL_HAS_SYMBOL_TABLE|ZEND_CALL_FREE_EXTRA_ARGS|ZEND_CALL_ALLOCATED|ZEND_CALL_HAS_EXTRA_NAMED_PARAMS)) == 0)) {
 		EG(current_execute_data) = EX(prev_execute_data);
 		i_free_compiled_variables(execute_data);
+		uint32_t op_num = opline - EX(func)->op_array.opcodes;
+
+		//		cleanup_unfinished_calls(execute_data, op_num);
+		cleanup_live_vars(execute_data, op_num, 0);
 
 #ifdef ZEND_PREFER_RELOAD
 		call_info = EX_CALL_INFO();
@@ -1308,6 +1312,12 @@ static zend_never_inline ZEND_OPCODE_HANDLER_RET ZEND_FASTCALL zend_leave_helper
 				}
 			}
 			EG(current_execute_data) = EX(prev_execute_data);
+//			i_free_compiled_variables(execute_data);
+			uint32_t op_num = opline - EX(func)->op_array.opcodes;
+
+//			cleanup_unfinished_calls(execute_data, opnum);
+			cleanup_live_vars(execute_data, op_num, 0);
+
 			ZEND_VM_RETURN();
 		}
 	}
