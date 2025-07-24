@@ -425,6 +425,7 @@ top_statement:
 
 use_type:
 	 	T_FUNCTION 		{ $$ = ZEND_SYMBOL_FUNCTION; }
+	| 	T_FN	 		{ $$ = ZEND_SYMBOL_FUNCTION; }
 	| 	T_CONST 		{ $$ = ZEND_SYMBOL_CONST; }
 ;
 
@@ -993,6 +994,10 @@ attributed_class_statement:
 			{ $$ = zend_ast_create(ZEND_AST_CLASS_CONST_GROUP, $4, NULL, $3);
 			  $$->attr = $1; }
 	|	method_modifiers function returns_ref identifier backup_doc_comment '(' parameter_list ')'
+		return_type backup_fn_flags method_body backup_fn_flags
+			{ $$ = zend_ast_create_decl(ZEND_AST_METHOD, $3 | $1 | $12, $2, $5,
+				  zend_ast_get_str($4), $7, NULL, $11, $9, NULL); CG(extra_fn_flags) = $10; }
+	|	method_modifiers fn returns_ref identifier backup_doc_comment '(' parameter_list ')'
 		return_type backup_fn_flags method_body backup_fn_flags
 			{ $$ = zend_ast_create_decl(ZEND_AST_METHOD, $3 | $1 | $12, $2, $5,
 				  zend_ast_get_str($4), $7, NULL, $11, $9, NULL); CG(extra_fn_flags) = $10; }
